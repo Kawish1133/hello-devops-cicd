@@ -1,0 +1,47 @@
+
+name: Hello DevOps CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get Source Code
+        uses: actions/checkout@v4
+
+      - name: Check Project Files
+        run: |
+          test -f index.html
+          test -f style.css
+          test -f Dockerfile
+          echo "All files are available!"
+
+      - name: Build Docker Image
+        run: docker build -t hello-devops .
+
+      - name: Run Container
+        run: |
+          docker run -d --name hello-test -p 8081:80 hello-devops
+
+      - name: Test Website
+        run: |
+          for i in {1..10}; do
+            if curl -fsS http://localhost:8081 | grep -q "Hello, DevOps World!"; then
+              echo "Website test passed!"
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs hello-test
+          exit 1
+
+      - name: Cleanup
+        if: always()
+        run: docker rm -f hello-test || true
+
